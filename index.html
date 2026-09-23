@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phòng Thí Nghiệm Áo - Dao Động Điều Hòa</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #080c14;
+            color: #e2e8f0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sci-Fi Neon Colors */
+        :root {
+            --cyan-glow: #00f0ff;
+            --pink-glow: #ff007f;
+            --green-glow: #00ff66;
+            --amber-glow: #ffb700;
+            --panel-bg: rgba(13, 20, 36, 0.85);
+            --border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        /* Header Bar */
+        header {
+            height: 50px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 1px;
+            color: var(--cyan-glow);
+            text-shadow: 0 0 8px rgba(0,240,255,0.5);
+        }
+
+        .badge {
+            font-size: 10px;
+            background: rgba(0,240,255,0.15);
+            border: 1px solid var(--cyan-glow);
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        /* Main Workspace Container */
+        .workspace {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        @media (min-width: 1024px) {
+            .workspace {
+                flex-direction: row;
+            }
+        }
+
+        /* Canvas Viewport */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #0f172a 0%, #050811 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Floating HUD Telemetry on Canvas */
+        .hud-overlay {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-card {
+            background: rgba(10, 16, 30, 0.75);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #a0aec0;
+            display: flex;
+            gap: 12px;
+        }
+
+        .hud-value {
+            color: var(--cyan-glow);
+            font-weight: bold;
+        }
+
+        /* Action Floating Play/Pause Buttons */
+        .canvas-controls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .btn-action {
+            background: rgba(0, 240, 255, 0.15);
+            border: 1px solid var(--cyan-glow);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:active {
+            transform: scale(0.95);
+            background: var(--cyan-glow);
+            color: #000;
+        }
+
+        /* Controls / Tabs Area for Mobile & Desktop */
+        .panels-wrapper {
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 15;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 1023px) {
+            .panels-wrapper {
+                height: 45vh;
+                max-height: 380px;
+            }
+            .panels-wrapper.collapsed {
+                height: 40px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .panels-wrapper {
+                width: 360px;
+                height: 100%;
+                border-top: none;
+                border-left: 1px solid var(--border-color);
+            }
+        }
+
+        /* Mobile Tab Navigation Bar */
+        .mobile-tabs {
+            display: flex;
+            background: rgba(8, 12, 20, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            height: 40px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--cyan-glow);
+            border-bottom-color: var(--cyan-glow);
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        /* Tab Content Screens */
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            display: none;
+        }
+
+        .panel-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-tabs {
+                display: none;
+            }
+            .panel-content {
+                display: flex !important;
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+
+        /* Form Controls & Sliders */
+        .control-group {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .control-label span.value {
+            color: var(--cyan-glow);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan-glow);
+            box-shadow: 0 0 10px var(--cyan-glow);
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f172a;
+            border: 1px solid rgba(0,240,255,0.3);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 12px;
+            outline: none;
+        }
+
+        /* Type Mode Toggle Switch */
+        .mode-switch {
+            display: flex;
+            background: #0f172a;
+            padding: 3px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: none;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--cyan-glow);
+            color: #080c14;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Energy Bars */
+        .energy-bar-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bar-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .bar-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        .bar-bg {
+            height: 10px;
+            background: #0f172a;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        /* Graph Canvas */
+        .graph-box {
+            height: 140px;
+            width: 100%;
+            background: #050811;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        /* Touch Hint Overlay */
+        .touch-hint {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #cbd5e1;
+            pointer-events: none;
+            opacity: 0.8;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.9; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 1 0 10 7"/></svg>
+            PHYSICS LAB <span class="badge">VIRTUAL 2.0</span>
+        </div>
+        <div style="font-family: monospace; font-size: 11px; color: var(--green-glow);" id="fpsText">FPS: 60</div>
+    </header>
+
+    <div class="workspace">
+        <!-- Simulation Canvas Area -->
+        <div class="canvas-container">
+            <!-- Telemetry Overlay -->
+            <div class="hud-overlay">
+                <div class="hud-card">
+                    <div>THỜI GIAN: <span class="hud-value" id="hudTime">0.00s</span></div>
+                    <div>GÓC/LI ĐỘ: <span class="hud-value" id="hudPos">0.0°</span></div>
+                </div>
+            </div>
+
+            <!-- Hint for Touch -->
+            <div class="touch-hint" id="touchHint">👆 Chạm/Kéo con lắc để thay đổi vị trí</div>
+
+            <!-- Canvas Element -->
+            <canvas id="simCanvas"></canvas>
+
+            <!-- Floating Action Buttons -->
+            <div class="canvas-controls">
+                <button class="btn-action" id="btnPlay" onclick="togglePlay()">
+                    <span id="playIcon">▶</span> <span id="playText">CHẠY</span>
+                </button>
+                <button class="btn-action" onclick="resetSim()" style="border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1);">
+                    🔄 LÀM MỚI
+                </button>
+            </div>
+        </div>
+
+        <div class="panels-wrapper" id="panelsWrapper">
+            <!-- Navigation Tabs for Mobile -->
+            <div class="mobile-tabs">
+                <button class="tab-btn active" onclick="switchTab('tab-controls', this)">⚙️ Cấu hình</button>
+                <button class="tab-btn" onclick="switchTab('tab-energy', this)">⚡ Năng lượng</button>
+                <button class="tab-btn" onclick="switchTab('tab-graph', this)">📈 Đồ thị</button>
+            </div>
+
+            <!-- Tab 1: Controls -->
+            <div class="panel-content active" id="tab-controls">
+                <!-- Mode Switcher -->
+                <div class="mode-switch">
+                    <button class="mode-btn active" id="btnModePendulum" onclick="setMode('pendulum')">Con Lắc Đơn</button>
+                    <button class="mode-btn" id="btnModeSpring" onclick="setMode('spring')">Con Lắc Lò Xo</button>
+                </div>
+
+                <!-- Parameters -->
+                <div class="control-group" id="grpLength">
+                    <div class="control-label">
+                        <span>Chiều dài dây (L)</span>
+                        <span class="value" id="valLength">1.50 m</span>
+                    </div>
+                    <input type="range" id="inpLength" min="0.5" max="3.0" step="0.1" value="1.5" oninput="updateParams()">
+                </div>
+
+                <div class="control-group" id="grpStiffness" style="display: none;">
+                    <div class="control-label">
+                        <span>Độ cứng lò xo (k)</span>
+                        <span class="value" id="valStiffness">50 N/m</span>
+                    </div>
+                    <input type="range" id="inpStiffness" min="10" max="150" step="5" value="50" oninput="updateParams()">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Khối lượng vật (m)</span>
+                        <span class="value" id="valMass">0.50 kg</span>
+                    </div>
+                    <input type="range" id="inpMass" min="0.1" max="2.0" step="0.05" value="0.5" oninput="updateParams()">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Lực cản ma sát (b)</span>
+                        <span class="value" id="valDamping">0.02 (Nhẹ)</span>
+                    </div>
+                    <input type="range" id="inpDamping" min="0" max="0.15" step="0.005" value="0.02" oninput="updateParams()">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Môi trường trọng trường (g)</div>
+                    <select id="inpGravity" onchange="updateParams()">
+                        <option value="9.81">Trái Đất (g = 9.81 m/s²)</option>
+                        <option value="1.62">Mặt Trăng (g = 1.62 m/s²)</option>
+                        <option value="3.71">Sao Hỏa (g = 3.71 m/s²)</option>
+                        <option value="24.79">Sao Mộc (g = 24.79 m/s²)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tab 2: Energy Bars -->
+            <div class="panel-content" id="tab-energy">
+                <div class="control-group">
+                    <div class="control-label" style="margin-bottom:12px;">BIỂU ĐỒ BẢO TOÀN NĂNG LƯỢNG</div>
+                    <div class="energy-bar-container">
+                        <div class="bar-wrapper">
+                            <div class="bar-info">
+                                <span style="color:var(--pink-glow);">Động năng (Wđ)</span>
+                                <span id="txtEk">0.00 J</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="barEk" style="background:var(--pink-glow);"></div>
+                            </div>
+                        </div>
+
+                        <div class="bar-wrapper">
+                            <div class="bar-info">
+                                <span style="color:var(--cyan-glow);">Thế năng (Wt)</span>
+                                <span id="txtEp">0.00 J</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="barEp" style="background:var(--cyan-glow);"></div>
+                            </div>
+                        </div>
+
+                        <div class="bar-wrapper">
+                            <div class="bar-info">
+                                <span style="color:var(--green-glow);">Cơ năng tổng (W)</span>
+                                <span id="txtEtotal">0.00 J</span>
+                            </div>
+                            <div class="bar-bg">
+                                <div class="bar-fill" id="barEtotal" style="background:var(--green-glow);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group font-mono" style="font-size:11px; line-height: 1.6; color:#94a3b8;">
+                    <div>• Chu kỳ tính toán (T): <span id="calcPeriod" style="color:#fff;">--</span></div>
+                    <div>• Tần số góc (ω): <span id="calcOmega" style="color:#fff;">--</span></div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Realtime Graph -->
+            <div class="panel-content" id="tab-graph">
+                <div class="control-group">
+                    <div class="control-label">ĐỒ THỊ LI ĐỘ - THỜI GIAN</div>
+                    <div class="graph-box">
+                        <canvas id="graphCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Physical Simulation State
+        const state = {
+            mode: 'pendulum', // 'pendulum' or 'spring'
+            isRunning: false,
+            time: 0,
+            dt: 0.016, // ~60fps physics step
+            
+            // Physics Params
+            length: 1.5,
+            stiffness: 50,
+            mass: 0.5,
+            damping: 0.02,
+            gravity: 9.81,
+
+            // Variables
+            theta: 25 * Math.PI / 180, // Pendulum angle (rad)
+            omega: 0,
+            x: 0.2,                   // Spring displacement (m)
+            v: 0,
+
+            // Touch Drag State
+            isDragging: false,
+
+            // Graph buffer
+            graphData: [],
+            maxGraphPoints: 180
+        };
+
+        // DOM & Canvas Contexts
+        const simCanvas = document.getElementById('simCanvas');
+        const simCtx = simCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        // On Load Initialization
+        window.addEventListener('load', () => {
+            handleResize();
+            window.addEventListener('resize', handleResize);
+
+            // Bind Touch & Mouse Drag Events directly on Canvas
+            setupInteractionEvents();
+
+            updateParams();
+            resetSim();
+
+            // Start Main Simulation Animation Loop
+            requestAnimationFrame(simLoop);
+        });
+
+        // Resize Canvas dynamically to match screen aspect ratio
+        function handleResize() {
+            const container = simCanvas.parentElement;
+            simCanvas.width = container.clientWidth * window.devicePixelRatio;
+            simCanvas.height = container.clientHeight * window.devicePixelRatio;
+
+            const gContainer = graphCanvas.parentElement;
+            graphCanvas.width = gContainer.clientWidth * window.devicePixelRatio;
+            graphCanvas.height = gContainer.clientHeight * window.devicePixelRatio;
+        }
+
+        // Tab Switching for Mobile UI
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+
+            btn.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'tab-graph') handleResize();
+        }
+
+        // Toggle Simulation Modes
+        function setMode(mode) {
+            state.mode = mode;
+            document.getElementById('btnModePendulum').classList.toggle('active', mode === 'pendulum');
+            document.getElementById('btnModeSpring').classList.toggle('active', mode === 'spring');
+
+            document.getElementById('grpLength').style.display = mode === 'pendulum' ? 'block' : 'none';
+            document.getElementById('grpStiffness').style.display = mode === 'spring' ? 'block' : 'none';
+
+            resetSim();
+        }
+
+        // Update Physics Parameters from UI
+        function updateParams() {
+            state.length = parseFloat(document.getElementById('inpLength').value);
+            state.stiffness = parseFloat(document.getElementById('inpStiffness').value);
+            state.mass = parseFloat(document.getElementById('inpMass').value);
+            state.damping = parseFloat(document.getElementById('inpDamping').value);
+            state.gravity = parseFloat(document.getElementById('inpGravity').value);
+
+            document.getElementById('valLength').innerText = `${state.length.toFixed(2)} m`;
+            document.getElementById('valStiffness').innerText = `${state.stiffness} N/m`;
+            document.getElementById('valMass').innerText = `${state.mass.toFixed(2)} kg`;
+            document.getElementById('valDamping').innerText = `${state.damping.toFixed(3)}`;
+
+            // Theoretical calculations
+            let T = 0, omega = 0;
+            if (state.mode === 'pendulum') {
+                omega = Math.sqrt(state.gravity / state.length);
+                T = 2 * Math.PI / omega;
+            } else {
+                omega = Math.sqrt(state.stiffness / state.mass);
+                T = 2 * Math.PI / omega;
+            }
+            document.getElementById('calcPeriod').innerText = `${T.toFixed(2)} s`;
+            document.getElementById('calcOmega').innerText = `${omega.toFixed(2)} rad/s`;
+        }
+
+        function resetSim() {
+            state.time = 0;
+            state.graphData = [];
+            if (state.mode === 'pendulum') {
+                state.theta = 25 * Math.PI / 180;
+                state.omega = 0;
+            } else {
+                state.x = 0.25; // 25cm displacement
+                state.v = 0;
+            }
+            updateTelemetry(0, 0, 0);
+        }
+
+        function togglePlay() {
+            state.isRunning = !state.isRunning;
+            document.getElementById('playIcon').innerText = state.isRunning ? '⏸' : '▶';
+            document.getElementById('playText').innerText = state.isRunning ? 'TẠM DỪNG' : 'CHẠY';
+            document.getElementById('touchHint').style.display = 'none';
+        }
+
+        // Touch & Drag Handling for Mobile Devices
+        function setupInteractionEvents() {
+            const getPos = (e) => {
+                const rect = simCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * window.devicePixelRatio,
+                    y: (clientY - rect.top) * window.devicePixelRatio
+                };
+            };
+
+            const onStart = (e) => {
+                state.isDragging = true;
+                document.getElementById('touchHint').style.display = 'none';
+                onMove(e);
+            };
+
+            const onMove = (e) => {
+                if (!state.isDragging) return;
+                const pos = getPos(e);
+                const w = simCanvas.width;
+                const h = simCanvas.height;
+                const originX = w / 2;
+                const originY = state.mode === 'pendulum' ? h * 0.2 : h * 0.15;
+
+                if (state.mode === 'pendulum') {
+                    const dx = pos.x - originX;
+                    const dy = pos.y - originY;
+                    state.theta = Math.atan2(dx, dy);
+                    state.omega = 0; // Reset velocity while dragging
+                } else {
+                    const eqY = originY + h * 0.35;
+                    const scale = h * 0.3;
+                    state.x = (pos.y - eqY) / scale;
+                    state.v = 0;
+                }
+            };
+
+            const onEnd = () => {
+                state.isDragging = false;
+            };
+
+            simCanvas.addEventListener('mousedown', onStart);
+            simCanvas.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            simCanvas.addEventListener('touchstart', onStart, { passive: true });
+            simCanvas.addEventListener('touchmove', onMove, { passive: true });
+            window.addEventListener('touchend', onEnd);
+        }
+
+        // Physical Engine Integrator (Euler-Cromer)
+        function stepPhysics() {
+            if (!state.isRunning || state.isDragging) return;
+
+            state.time += state.dt;
+
+            if (state.mode === 'pendulum') {
+                const alpha = -(state.gravity / state.length) * Math.sin(state.theta) - (state.damping / state.mass) * state.omega;
+                state.omega += alpha * state.dt;
+                state.theta += state.omega * state.dt;
+            } else {
+                const a = -(state.stiffness / state.mass) * state.x - (state.damping / state.mass) * state.v;
+                state.v += a * state.dt;
+                state.x += state.v * state.dt;
+            }
+
+            // Graph Data Push
+            const currentPos = state.mode === 'pendulum' ? state.theta * 180 / Math.PI : state.x * 100;
+            state.graphData.push(currentPos);
+            if (state.graphData.length > state.maxGraphPoints) state.graphData.shift();
+        }
+
+        // Update HUD Telemetry and Energy Bars
+        function updateTelemetry(Ek, Ep, Etotal) {
+            document.getElementById('hudTime').innerText = `${state.time.toFixed(2)}s`;
+            if (state.mode === 'pendulum') {
+                document.getElementById('hudPos').innerText = `${(state.theta * 180 / Math.PI).toFixed(1)}°`;
+            } else {
+                document.getElementById('hudPos').innerText = `${(state.x * 100).toFixed(1)}cm`;
+            }
+
+            // Energy calculations
+            if (state.mode === 'pendulum') {
+                const vLin = state.omega * state.length;
+                Ek = 0.5 * state.mass * vLin * vLin;
+                Ep = state.mass * state.gravity * state.length * (1 - Math.cos(state.theta));
+            } else {
+                Ek = 0.5 * state.mass * state.v * state.v;
+                Ep = 0.5 * state.stiffness * state.x * state.x;
+            }
+            Etotal = Ek + Ep;
+
+            const maxE = Math.max(Etotal, 0.001);
+            document.getElementById('txtEk').innerText = `${Ek.toFixed(3)} J`;
+            document.getElementById('txtEp').innerText = `${Ep.toFixed(3)} J`;
+            document.getElementById('txtEtotal').innerText = `${Etotal.toFixed(3)} J`;
+
+            document.getElementById('barEk').style.width = `${Math.min(Ek / maxE * 100, 100)}%`;
+            document.getElementById('barEp').style.width = `${Math.min(Ep / maxE * 100, 100)}%`;
+            document.getElementById('barEtotal').style.width = `100%`;
+        }
+
+        // Canvas Rendering Routine
+        function render() {
+            const w = simCanvas.width;
+            const h = simCanvas.height;
+            simCtx.clearRect(0, 0, w, h);
+
+            const originX = w / 2;
+            const originY = state.mode === 'pendulum' ? h * 0.2 : h * 0.15;
+
+            if (state.mode === 'pendulum') {
+                const pixelLen = state.length * (h * 0.45 / 3.0);
+                const bobX = originX + pixelLen * Math.sin(state.theta);
+                const bobY = originY + pixelLen * Math.cos(state.theta);
+
+                // String Line
+                simCtx.strokeStyle = '#00f0ff';
+                simCtx.lineWidth = 3 * window.devicePixelRatio;
+                simCtx.shadowColor = '#00f0ff';
+                simCtx.shadowBlur = 10;
+                simCtx.beginPath();
+                simCtx.moveTo(originX, originY);
+                simCtx.lineTo(bobX, bobY);
+                simCtx.stroke();
+                simCtx.shadowBlur = 0;
+
+                // Bob Sphere
+                const radius = (14 + state.mass * 6) * window.devicePixelRatio;
+                simCtx.fillStyle = '#00f0ff';
+                simCtx.shadowColor = '#00f0ff';
+                simCtx.shadowBlur = 20;
+                simCtx.beginPath();
+                simCtx.arc(bobX, bobY, radius, 0, Math.PI * 2);
+                simCtx.fill();
+                simCtx.shadowBlur = 0;
+            } else {
+                const eqY = originY + h * 0.35;
+                const scale = h * 0.3;
+                const blockY = eqY + state.x * scale;
+
+                // Coiled Spring Drawing
+                const coils = 12;
+                const springW = 20 * window.devicePixelRatio;
+                simCtx.strokeStyle = '#ff007f';
+                simCtx.lineWidth = 3 * window.devicePixelRatio;
+                simCtx.shadowColor = '#ff007f';
+                simCtx.shadowBlur = 10;
+                simCtx.beginPath();
+                simCtx.moveTo(originX, originY);
+
+                const dy = (blockY - originY) / coils;
+                for (let i = 1; i <= coils; i++) {
+                    const x = originX + (i % 2 === 0 ? springW : -springW);
+                    const y = originY + i * dy - dy / 2;
+                    simCtx.lineTo(x, y);
+                }
+                simCtx.lineTo(originX, blockY);
+                simCtx.stroke();
+                simCtx.shadowBlur = 0;
+
+                // Block Object
+                const size = (28 + state.mass * 10) * window.devicePixelRatio;
+                simCtx.fillStyle = '#ff007f';
+                simCtx.shadowColor = '#ff007f';
+                simCtx.shadowBlur = 20;
+                simCtx.beginPath();
+                simCtx.roundRect(originX - size / 2, blockY, size, size, 8 * window.devicePixelRatio);
+                simCtx.fill();
+                simCtx.shadowBlur = 0;
+            }
+
+            // Render Realtime Graph
+            renderGraph();
+        }
+
+        // Render Graph Function
+        function renderGraph() {
+            const w = graphCanvas.width;
+            const h = graphCanvas.height;
+            graphCtx.clearRect(0, 0, w, h);
+
+            if (state.graphData.length < 2) return;
+
+            const centerY = h / 2;
+            graphCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+            graphCtx.beginPath();
+            graphCtx.moveTo(0, centerY);
+            graphCtx.lineTo(w, centerY);
+            graphCtx.stroke();
+
+            graphCtx.strokeStyle = state.mode === 'pendulum' ? '#00f0ff' : '#ff007f';
+            graphCtx.lineWidth = 2 * window.devicePixelRatio;
+            graphCtx.beginPath();
+
+            const stepX = w / state.maxGraphPoints;
+            state.graphData.forEach((val, i) => {
+                const x = i * stepX;
+                const y = centerY - val * (h * 0.35 / 40);
+                if (i === 0) graphCtx.moveTo(x, y);
+                else graphCtx.lineTo(x, y);
+            });
+            graphCtx.stroke();
+        }
+
+        // Main Loop
+        function simLoop() {
+            stepPhysics();
+            updateTelemetry();
+            render();
+            requestAnimationFrame(simLoop);
+        }
+    </script>
+</body>
+</html>
